@@ -1,4 +1,5 @@
 import org.apache.activemq.ActiveMQConnectionFactory;
+import org.apache.activemq.broker.BrokerService;
 
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -8,12 +9,16 @@ import java.time.Instant;
 import javax.jms.*;
 
 public class JmsMessageListenerExample {
-    public static void main(String[] args) throws URISyntaxException, Exception {
-
+    public static void main(String[] args) throws Exception {
+        BrokerService broker = new BrokerService();
+        broker.setBrokerName("service");
+        broker.setPersistent(false);
+        broker.addConnector("tcp://localhost:61616");
+        broker.start();
         Connection connection = null;
         try {
             // Producer
-            ActiveMQConnectionFactory connectionFactory = new ActiveMQConnectionFactory();
+            ActiveMQConnectionFactory connectionFactory = new ActiveMQConnectionFactory("vm://service");
             connection = connectionFactory.createConnection();
             connection.start();
             Session session = connection.createSession(false,
@@ -35,12 +40,13 @@ public class JmsMessageListenerExample {
             MessageConsumer consumer = session.createConsumer(queue);
             consumer.setMessageListener(new ConsumerMessageListener("Consumer"));
             //            Примерно за такое время вычитывает все сообщения из очереди
-            Thread.sleep(3800);
+            Thread.sleep(2300);
             session.close();
 
         } finally {
             if (connection != null) {
                 connection.close();
+                broker.stop();
             }
         }
     }

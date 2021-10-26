@@ -1,4 +1,5 @@
 import org.apache.activemq.ActiveMQConnectionFactory;
+import org.apache.activemq.broker.BrokerService;
 import org.apache.activemq.command.ActiveMQQueue;
 
 import javax.jms.*;
@@ -7,11 +8,19 @@ import java.time.Instant;
 
 
 public class NonTransactedConsumer {
-    public static void main(String[] args) throws JMSException {
+    public static void main(String[] args) throws Exception {
         NonTransactedConsumer.receive();
     }
-    public static void receive() throws JMSException {
-        ActiveMQConnectionFactory cf = new ActiveMQConnectionFactory();
+    public static void receive() throws Exception {
+        BrokerService broker = new BrokerService();
+        broker.setBrokerName("service");
+        broker.setPersistent(false);
+        broker.addConnector("tcp://localhost:61616");
+        broker.start();
+
+        ActiveMQConnectionFactory cf =
+                new ActiveMQConnectionFactory("vm://service");
+//        ActiveMQConnectionFactory cf = new ActiveMQConnectionFactory("tcp://localhost:61616");
         Connection connection = cf.createConnection();
         connection.start();
 
@@ -25,6 +34,7 @@ public class NonTransactedConsumer {
 
         for (int i = 0; i < 100_000; i++) {
             TextMessage message = (TextMessage) consumer.receive();
+//            System.out.println(message.getText());
         }
 
         Instant finish = Instant.now();
@@ -33,5 +43,6 @@ public class NonTransactedConsumer {
 
         session.close();
         connection.close();
+        broker.stop();
     }
 }
